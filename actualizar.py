@@ -1,30 +1,33 @@
-import requests
+name: Actualizar Lista M3U
 
-URL_FUENTE = "http://mmarc.ar"
-ARCHIVO_SALIDA = "lista.m3u"
+on:
+  schedule:
+    - cron: '0 3 * * *' # Se ejecuta automáticamente todos los días a las 3:00 AM UTC
+  workflow_dispatch: # Te permite ejecutarlo manualmente cuando quieras
 
-def generar_lista():
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': '*/*'
-    }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Permiso crucial para que el bot pueda guardar el archivo generado
+    steps:
+    - uses: actions/checkout@v4
     
-    try:
-        print("Descargando canales desde mmarc.ar...")
-        response = requests.get(URL_FUENTE, headers=headers, timeout=20)
+    - name: Configurar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
         
-        if response.status_code == 200:
-            contenido = response.text
-            
-            # Guardamos el archivo directamente
-            with open(ARCHIVO_SALIDA, "w", encoding="utf-8") as f:
-                f.write(contenido)
-            print(f"¡Éxito! Archivo {ARCHIVO_SALIDA} actualizado.")
-        else:
-            print(f"Error de conexión. Código: {response.status_code}")
-            
-    except Exception as e:
-        print(f"Ocurrió un error: {e}")
+    - name: Instalar dependencias
+      run: pip install -r requirements.txt
 
-if __name__ == "__main__":
-    generar_lista()
+    - name: Ejecutar Script
+      run: python actualizar.py
+
+    - name: Guardar cambios en el repositorio
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@://github.com'
+        git add lista.m3u || true
+        git commit -m "Lista actualizada automáticamente" || true
+        git push || true
